@@ -1,102 +1,472 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Virtual Fan</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Virtual Fan - Blow to Control</title>
     <style>
-       body { text-align: center; padding: 50px; font-family: Arial; }
-.fan { width: 200px; height: 200px; margin: 50px auto; position: relative; }
-.blade { 
-    width: 200px; 
-    height: 200px; 
-    position: relative;
-    transition: transform 0.1s ease-out;
-}
-.blade:before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 80px;
-    height: 6px;
-    background: #333;
-    transform-origin: left center;
-    transform: translate(-50%, -50%) rotate(0deg);
-}
-.blade:after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 80px;
-    height: 6px;
-    background: #333;
-    transform-origin: left center;
-    transform: translate(-50%, -50%) rotate(90deg);
-}
-button { padding: 15px 30px; font-size: 18px; margin: 10px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            animation: fadeIn 1s ease-out;
+        }
+        
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        
+        .fan-container {
+            width: 200px;
+            height: 200px;
+            margin: 40px auto;
+            position: relative;
+            animation: slideUp 0.8s ease-out;
+        }
+        
+        .fan {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.1s linear;
+        }
+        
+        .fan-blade {
+            position: absolute;
+            width: 80px;
+            height: 100px;
+            background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+            border-radius: 50% 10% 50% 10%;
+            left: 50%;
+            top: 50%;
+            transform-origin: center bottom;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .blade1 {
+            transform: translate(-50%, -100%) rotate(0deg);
+        }
+        
+        .blade2 {
+            transform: translate(-50%, -100%) rotate(120deg);
+        }
+        
+        .blade3 {
+            transform: translate(-50%, -100%) rotate(240deg);
+        }
+        
+        .fan-center {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #4a4a4a, #2a2a2a);
+            border-radius: 50%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn.secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .room-info {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .room-code {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin: 10px 0;
+            color: #ffd700;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+        
+        .status.connected {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+        }
+        
+        .mic-indicator {
+            width: 60px;
+            height: 60px;
+            margin: 20px auto;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            animation: pulse 2s infinite;
+        }
+        
+        .mic-indicator.active {
+            background: rgba(76, 175, 80, 0.5);
+            animation: pulse 0.5s infinite;
+        }
+        
+        .share-url {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            word-break: break-all;
+            margin: 10px 0;
+            user-select: all;
+            cursor: pointer;
+        }
+        
+        .instruction {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <h1>Virtual Fan</h1>
-    
-    <div class="fan">
-        <div class="blade" id="fan"></div>
+    <div class="container">
+        <h1>🌪️ Virtual Fan</h1>
+        <p class="subtitle">Blow into your phone to control a fan!</p>
+        
+        <!-- Landing Screen -->
+        <div id="landing" class="screen">
+            <div class="fan-container">
+                <div class="fan" id="demoFan">
+                    <div class="fan-blade blade1"></div>
+                    <div class="fan-blade blade2"></div>
+                    <div class="fan-blade blade3"></div>
+                    <div class="fan-center"></div>
+                </div>
+            </div>
+            <button class="btn" onclick="createRoom()">Create Fan Room</button>
+            <p class="instruction">Create a room and share the link with a friend</p>
+        </div>
+        
+        <!-- Host Screen -->
+        <div id="hostScreen" class="screen hidden">
+            <div class="room-info">
+                <p>Room Code</p>
+                <div class="room-code" id="roomCode">-</div>
+                <div class="status" id="hostStatus">Waiting for controller...</div>
+            </div>
+            
+            <div class="fan-container">
+                <div class="fan" id="mainFan">
+                    <div class="fan-blade blade1"></div>
+                    <div class="fan-blade blade2"></div>
+                    <div class="fan-blade blade3"></div>
+                    <div class="fan-center"></div>
+                </div>
+            </div>
+            
+            <div class="share-url" id="shareUrl" onclick="copyUrl()">Loading...</div>
+            <p class="instruction">Share this URL with your friend</p>
+        </div>
+        
+        <!-- Controller Screen -->
+        <div id="controllerScreen" class="screen hidden">
+            <div class="room-info">
+                <p>Connected to Room</p>
+                <div class="room-code" id="controllerRoomCode">-</div>
+                <div class="status connected">Connected</div>
+            </div>
+            
+            <div class="mic-indicator" id="micIndicator">🎤</div>
+            
+            <button class="btn" id="startBtn" onclick="startControlling()">Start Controlling</button>
+            <button class="btn secondary hidden" id="stopBtn" onclick="stopControlling()">Stop</button>
+            
+            <p class="instruction">Blow into your microphone to control the fan!</p>
+        </div>
     </div>
     
-    <div id="controls">
-        <button onclick="createRoom()">Create Fan</button>
-        <button onclick="controlFan()">Control Fan</button>
-    </div>
-    
-    <div id="status"></div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        const fan = document.getElementById('fan');
-        const status = document.getElementById('status');
-        let roomId = new URLSearchParams(window.location.search).get('room');
-        let rotation = 0;
+        let socket;
+        let roomId;
+        let audioContext;
+        let microphone;
+        let analyser;
+        let isController = false;
+        let fanRotation = 0;
+        let animationFrame;
         
-        if (roomId) {
-            socket.emit('join-room', roomId);
-            status.innerHTML = 'Connected to fan!';
-            document.getElementById('controls').innerHTML = 
-                '<button onclick="startBlowing()">Start Blowing</button>';
-        }
-        
-        function createRoom() {
-            roomId = Math.random().toString(36).substring(7);
-            socket.emit('join-room', roomId);
-            const shareUrl = `${window.location.origin}?room=${roomId}`;
-            status.innerHTML = `Share this URL: <br><a href="${shareUrl}">${shareUrl}</a>`;
-        }
-        
-        function startBlowing() {
-            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-                const audioContext = new AudioContext();
-                const analyser = audioContext.createAnalyser();
-                const microphone = audioContext.createMediaStreamSource(stream);
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                
-                microphone.connect(analyser);
-                
-                function detectBlow() {
-                    analyser.getByteFrequencyData(dataArray);
-                    const volume = Math.max(...dataArray);
-                    socket.emit('blow-data', {room: roomId, volume: volume});
-                    requestAnimationFrame(detectBlow);
-                }
-                detectBlow();
+        // Initialize Socket.IO connection
+        function initSocket() {
+            socket = io();
+            
+            socket.on('roomCreated', (data) => {
+                roomId = data.roomId;
+                document.getElementById('roomCode').textContent = roomId;
+                const url = `${window.location.origin}?room=${roomId}`;
+                document.getElementById('shareUrl').textContent = url;
+            });
+            
+            socket.on('controllerJoined', () => {
+                document.getElementById('hostStatus').textContent = 'Controller connected!';
+                document.getElementById('hostStatus').classList.add('connected');
+            });
+            
+            socket.on('controllerLeft', () => {
+                document.getElementById('hostStatus').textContent = 'Controller disconnected';
+                document.getElementById('hostStatus').classList.remove('connected');
+            });
+            
+            socket.on('fanSpeed', (data) => {
+                updateFanSpeed(data.speed);
+            });
+            
+            socket.on('joinedAsController', (data) => {
+                roomId = data.roomId;
+                document.getElementById('controllerRoomCode').textContent = roomId;
+                showScreen('controllerScreen');
+            });
+            
+            socket.on('error', (data) => {
+                alert(data.message);
+                showScreen('landing');
             });
         }
         
-        socket.on('fan-speed', (volume) => {
-            const speed = volume / 10;
-            rotation += speed;
-            fan.style.transform = `rotate(${rotation}deg)`;
-        });
+        // Create a new room
+        function createRoom() {
+            showScreen('hostScreen');
+            socket.emit('createRoom');
+        }
+        
+        // Copy share URL to clipboard
+        function copyUrl() {
+            const url = document.getElementById('shareUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                const element = document.getElementById('shareUrl');
+                const originalText = element.textContent;
+                element.textContent = 'Copied!';
+                setTimeout(() => {
+                    element.textContent = originalText;
+                }, 2000);
+            });
+        }
+        
+        // Start microphone control
+        async function startControlling() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                microphone.connect(analyser);
+                
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                document.getElementById('micIndicator').classList.add('active');
+                
+                detectBlow();
+            } catch (err) {
+                alert('Microphone access denied. Please allow microphone access to control the fan.');
+            }
+        }
+        
+        // Stop microphone control
+        function stopControlling() {
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('micIndicator').classList.remove('active');
+        }
+        
+        // Detect blowing into microphone
+        function detectBlow() {
+            if (!analyser) return;
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Calculate average volume
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / dataArray.length;
+            
+            // Map volume to fan speed (0-100)
+            const speed = Math.min(100, (average / 128) * 100);
+            
+            // Send speed to server if significant
+            if (speed > 10) {
+                socket.emit('controlFan', { roomId, speed });
+                document.getElementById('micIndicator').style.background = `rgba(76, 175, 80, ${speed/100})`;
+            } else {
+                document.getElementById('micIndicator').style.background = 'rgba(255,255,255,0.2)';
+            }
+            
+            requestAnimationFrame(detectBlow);
+        }
+        
+        // Update fan rotation speed
+        function updateFanSpeed(speed) {
+            const fan = document.getElementById('mainFan');
+            if (!fan) return;
+            
+            // Convert speed (0-100) to rotation speed
+            const rotationSpeed = (speed / 100) * 10; // Max 10 deg per frame
+            fanRotation += rotationSpeed;
+            fan.style.transform = `rotate(${fanRotation}deg)`;
+            
+            // Continue animation if speed > 0
+            if (speed > 0) {
+                if (!animationFrame) {
+                    animationFrame = requestAnimationFrame(() => {
+                        animationFrame = null;
+                        updateFanSpeed(speed * 0.95); // Gradual slowdown
+                    });
+                }
+            }
+        }
+        
+        // Show specific screen
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+        
+        // Demo fan animation
+        function animateDemoFan() {
+            const demoFan = document.getElementById('demoFan');
+            if (demoFan && !document.getElementById('landing').classList.contains('hidden')) {
+                fanRotation += 2;
+                demoFan.style.transform = `rotate(${fanRotation}deg)`;
+            }
+            requestAnimationFrame(animateDemoFan);
+        }
+        
+        // Initialize on page load
+        window.onload = () => {
+            initSocket();
+            animateDemoFan();
+            
+            // Check if joining a room
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            
+            if (roomParam) {
+                isController = true;
+                socket.emit('joinRoom', { roomId: roomParam });
+            }
+        };
     </script>
 </body>
 </html>
