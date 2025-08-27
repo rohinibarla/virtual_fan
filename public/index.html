@@ -195,6 +195,34 @@
             display: none !important;
         }
         
+        .blow-text {
+            font-size: 4rem;
+            font-weight: bold;
+            letter-spacing: 0.2em;
+            background: linear-gradient(45deg, #fff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: breathe 2s ease-in-out infinite;
+            margin: 40px 0;
+            text-shadow: 0 0 40px rgba(255,255,255,0.3);
+        }
+        
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        .fan-container.fullscreen {
+            width: min(80vw, 80vh);
+            height: min(80vw, 80vh);
+            margin: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -252,10 +280,12 @@
         
         <!-- Host Screen -->
         <div id="hostScreen" class="screen hidden">
-            <div class="room-info">
+            <div class="room-info" id="hostWaiting">
                 <p>Room Code</p>
                 <div class="room-code" id="roomCode">-</div>
                 <div class="status" id="hostStatus">Waiting for controller...</div>
+                <div class="share-url" id="shareUrl" onclick="copyUrl()">Loading...</div>
+                <p class="instruction">Share this URL with your friend</p>
             </div>
             
             <div class="fan-container">
@@ -266,25 +296,24 @@
                     <div class="fan-center"></div>
                 </div>
             </div>
-            
-            <div class="share-url" id="shareUrl" onclick="copyUrl()">Loading...</div>
-            <p class="instruction">Share this URL with your friend</p>
         </div>
         
         <!-- Controller Screen -->
         <div id="controllerScreen" class="screen hidden">
-            <div class="room-info">
+            <div class="room-info" id="controllerWaiting">
                 <p>Connected to Room</p>
                 <div class="room-code" id="controllerRoomCode">-</div>
                 <div class="status connected">Connected</div>
+                <button class="btn" id="startBtn" onclick="startControlling()">Start Controlling</button>
             </div>
             
-            <div class="mic-indicator" id="micIndicator">🎤</div>
+            <div id="controllerActive" class="hidden">
+                <h1 class="blow-text">BLOW AIR</h1>
+                <div class="mic-indicator hidden" id="micIndicator">🎤</div>
+                <button class="btn secondary hidden" id="stopBtn" onclick="stopControlling()">Stop</button>
+            </div>
             
-            <button class="btn" id="startBtn" onclick="startControlling()">Start Controlling</button>
-            <button class="btn secondary hidden" id="stopBtn" onclick="stopControlling()">Stop</button>
-            
-            <p class="instruction">Blow into your microphone to control the fan!</p>
+            <p class="instruction" id="controllerInstruction">Click Start to begin controlling the fan!</p>
         </div>
     </div>
     
@@ -311,13 +340,25 @@
             });
             
             socket.on('controllerJoined', () => {
+                // Hide waiting info and show only the fan
+                document.getElementById('hostWaiting').classList.add('hidden');
                 document.getElementById('hostStatus').textContent = 'Controller connected!';
                 document.getElementById('hostStatus').classList.add('connected');
+                
+                // Make fan fullscreen
+                const fanContainer = document.querySelector('#hostScreen .fan-container');
+                fanContainer.classList.add('fullscreen');
             });
             
             socket.on('controllerLeft', () => {
+                // Show waiting info again
+                document.getElementById('hostWaiting').classList.remove('hidden');
                 document.getElementById('hostStatus').textContent = 'Controller disconnected';
                 document.getElementById('hostStatus').classList.remove('connected');
+                
+                // Remove fullscreen from fan
+                const fanContainer = document.querySelector('#hostScreen .fan-container');
+                fanContainer.classList.remove('fullscreen');
             });
             
             socket.on('fanSpeed', (data) => {
@@ -372,9 +413,10 @@
                 analyser.smoothingTimeConstant = 0.3; // Less smoothing for faster response
                 microphone.connect(analyser);
                 
-                document.getElementById('startBtn').classList.add('hidden');
-                document.getElementById('stopBtn').classList.remove('hidden');
-                document.getElementById('micIndicator').classList.add('active');
+                // Hide waiting info and show only "BLOW AIR"
+                document.getElementById('controllerWaiting').classList.add('hidden');
+                document.getElementById('controllerActive').classList.remove('hidden');
+                document.getElementById('controllerInstruction').classList.add('hidden');
                 
                 detectBlow();
             } catch (err) {
@@ -388,9 +430,10 @@
                 audioContext.close();
                 audioContext = null;
             }
-            document.getElementById('startBtn').classList.remove('hidden');
-            document.getElementById('stopBtn').classList.add('hidden');
-            document.getElementById('micIndicator').classList.remove('active');
+            // Show waiting info again
+            document.getElementById('controllerWaiting').classList.remove('hidden');
+            document.getElementById('controllerActive').classList.add('hidden');
+            document.getElementById('controllerInstruction').classList.remove('hidden');
         }
         
         // Detect blowing into microphone
@@ -425,9 +468,16 @@
             // Send speed to server with lower threshold for more sensitivity
             if (speed > 5) {
                 socket.emit('controlFan', { roomId, speed });
-                document.getElementById('micIndicator').style.background = `rgba(76, 175, 80, ${Math.min(1, speed/50)})`;
+                // Visual feedback through text glow
+                const blowText = document.querySelector('.blow-text');
+                if (blowText) {
+                    blowText.style.textShadow = `0 0 ${40 + speed}px rgba(255,255,255,${Math.min(1, speed/50)})`;
+                }
             } else {
-                document.getElementById('micIndicator').style.background = 'rgba(255,255,255,0.2)';
+                const blowText = document.querySelector('.blow-text');
+                if (blowText) {
+                    blowText.style.textShadow = '0 0 40px rgba(255,255,255,0.3)';
+                }
             }
             
             requestAnimationFrame(detectBlow);
