@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Virtual Fan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { text-align: center; padding: 50px; font-family: Arial; }
+        .fan { width: 200px; height: 200px; margin: 50px auto; }
+        .blade { width: 100%; height: 100%; border-radius: 50%; 
+                 border: 20px solid #333; transition: transform 0.1s; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Virtual Fan</h1>
+    
+    <div class="fan">
+        <div class="blade" id="fan"></div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="createRoom()">Create Fan</button>
+        <button onclick="controlFan()">Control Fan</button>
+    </div>
+    
+    <div id="status"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const fan = document.getElementById('fan');
+        const status = document.getElementById('status');
+        let roomId = new URLSearchParams(window.location.search).get('room');
+        let rotation = 0;
+        
+        if (roomId) {
+            socket.emit('join-room', roomId);
+            status.innerHTML = 'Connected to fan!';
+            document.getElementById('controls').innerHTML = 
+                '<button onclick="startBlowing()">Start Blowing</button>';
+        }
+        
+        function createRoom() {
+            roomId = Math.random().toString(36).substring(7);
+            socket.emit('join-room', roomId);
+            const shareUrl = `${window.location.origin}?room=${roomId}`;
+            status.innerHTML = `Share this URL: <br><a href="${shareUrl}">${shareUrl}</a>`;
+        }
+        
+        function startBlowing() {
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                const audioContext = new AudioContext();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(stream);
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                microphone.connect(analyser);
+                
+                function detectBlow() {
+                    analyser.getByteFrequencyData(dataArray);
+                    const volume = Math.max(...dataArray);
+                    socket.emit('blow-data', {room: roomId, volume: volume});
+                    requestAnimationFrame(detectBlow);
+                }
+                detectBlow();
+            });
+        }
+        
+        socket.on('fan-speed', (volume) => {
+            const speed = volume / 10;
+            rotation += speed;
+            fan.style.transform = `rotate(${rotation}deg)`;
+        });
+    </script>
+</body>
+</html>
